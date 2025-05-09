@@ -46,20 +46,32 @@ def get_head_pose(image):
     
     return jaw_angle, head_pitch
 def calculate_section2(images,au_values):
-    result=[]
-    for image in images:
+    persistant_list = []
+    out_focus_list = []
+    out_structure_list = []
+    out_risk_list = []
+    for i, image in enumerate(images):
         jaw_angle, head_pitch = get_head_pose(cv2.imread(image))
-        result.append({"jaw":jaw_angle,"head":head_pitch})
-    collected = {key: [] for key in result[0].keys()}
-    for entry in result:
-        for key, value in entry.items():
-            collected[key].append(value)
-    # Compute mean for each key
-    mp_result = {key: np.mean(values) for key, values in collected.items()}
-    persistant = (1 - abs(mp_result['jaw']-100)/40)*0.3 + (1 - abs(mp_result['head'])/30)*0.4 + (au_values['AU01']+au_values['AU06'])/2*0.3
-    out_focus = (1 - abs(mp_result['head'])/30)*0.4 + (au_values['AU01'] + au_values['AU02'] + au_values['AU06'])*0.2
-    out_structure = mp_result['jaw']/140 *0.6 + (1-abs(mp_result['head'])/30)*0.4
-    out_risk = (1 if mp_result['head'] > 5 else 0) *0.4 + (1 if mp_result['jaw']>120 else 0)*0.3 + au_values['AU04']*0.3
-    # Work_DNA = persistant*0.4 + out_structure*0.3 + out_risk*0.3
-    # Focus_Work = out_focus*0.5 + au_values['AU01']*0.2 + (1-au_values['AU04'])*0.1 + au_values['AU06']*0.2
-    return {"Persistant":f"{persistant*100:.1f}","Focus":f"{out_focus*100:.1f}","Structure":f"{out_structure*100:.1f}","Risk":f"{out_risk*100:.1f}"}
+        
+        persistant = (1 - abs(jaw_angle-100)/40)*0.3 + (1 - abs(head_pitch)/30)*0.4 + (au_values['AU01'][i] +au_values['AU06'][i])/2*0.3
+        persistant_list.append(persistant)
+        
+        out_focus = (1 - abs(head_pitch)/30)*0.4 + (au_values['AU01'][i] + au_values['AU02'][i] + au_values['AU06'][i])*0.2
+        out_focus_list.append(out_focus)
+        
+        out_structure = jaw_angle/140 *0.6 + (1-abs(head_pitch)/30)*0.4
+        out_structure_list.append(out_structure)
+        
+        out_risk = (1 if head_pitch > 5 else 0) *0.4 + (1 if jaw_angle>120 else 0)*0.3 + au_values['AU04'][i] * 0.3
+        out_risk_list.append(out_risk)
+    
+    select = np.argmax([persistant_list,out_focus_list,out_structure_list,out_risk_list], axis=1)
+        # Work_DNA = persistant*0.4 + out_structure*0.3 + out_risk*0.3
+        # Focus_Work = out_focus*0.5 + au_values['AU01']*0.2 + (1-au_values['AU04'])*0.1 + au_values['AU06']*0.2
+    return {
+            "Persistant":np.mean(persistant_list)*100,
+            "Focus":np.mean(out_focus_list)*100,
+            "Structure":np.mean(out_structure_list)*100,
+            "Risk":np.mean(out_risk_list)*100,
+            "select":select
+            }

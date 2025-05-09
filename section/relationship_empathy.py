@@ -174,23 +174,30 @@ def calculate_gaze_iris(image):
     return {"gaze_direction": gaze_direction,"diopter": estimated_diopter}
 
 def calculate_section1(images,au_values):
-    result = []
-    for image in images:
-        result.append(calculate_gaze_iris(cv2.imread(image)))
+    iris_score = []
+    trust = []
+    openness = []
+    Empathy = []
+    ConflictAvoid = []
+    for i,image in enumerate(images):
+        result = calculate_gaze_iris(cv2.imread(image))
         
-    collected = {key: [] for key in result[0].keys()}
-    # Collect values for each key
-    for entry in result:
-        for key, value in entry.items():
-            collected[key].append(value)
-
-    # Compute mean for each key
-    mp_result = {key: np.mean(values) for key, values in collected.items()}
-    iris_score = min(max((mp_result['diopter'] + 1)/2, 0), 1)
-    trust = (au_values['AU06'] + au_values['AU12'])*0.2 + mp_result['gaze_direction']*0.4 + iris_score*0.2
-    openness = au_values['AU12']*0.5 + au_values['AU06']*0.3 + mp_result['gaze_direction']*0.2
-    Empathy = au_values['AU01']*0.5 + au_values['AU06']*0.3 + mp_result['gaze_direction']*0.2
-    ConflictAvoid = (1-au_values['AU12'])*0.5 + (1-au_values['AU06'])*0.3 + mp_result['gaze_direction']*0.2
-    # EmpathyScore = (Empathy + trust * 0.5)/1.5
-    # RelationshipScore = trust*0.4 + openness*0.3 + Empathy*0.3 + (1-ConflictAvoid)*0.1
-    return {"trust": trust*100, "openness": openness*100, "Empathy":Empathy*100, "ConflictAvoid":ConflictAvoid*100}
+        iris_score = min(max((result['diopter'] + 1)/2, 0), 1)
+        
+        trust.append((au_values['AU06'][i] + au_values['AU12'][i])*0.2 + result['gaze_direction']*0.4 + iris_score*0.2)
+        
+        openness.append(au_values['AU12'][i]*0.5 + au_values['AU06'][i]*0.3 + result['gaze_direction']*0.2)
+        
+        Empathy.append(au_values['AU01'][i]*0.5 + au_values['AU06'][i]*0.3 + result['gaze_direction']*0.2)
+        
+        ConflictAvoid.append((1-au_values['AU12'][i])*0.5 + (1-au_values['AU06'][i])*0.3 + result['gaze_direction']*0.2)
+        # EmpathyScore = (Empathy + trust * 0.5)/1.5
+        # RelationshipScore = trust*0.4 + openness*0.3 + Empathy*0.3 + (1-ConflictAvoid)*0.1
+    select = np.argmax([trust,openness,Empathy,ConflictAvoid], axis=1)
+    
+    return {"trust": np.mean(trust)*100, 
+            "openness": np.mean(openness)*100,
+            "Empathy":np.mean(Empathy)*100, 
+            "ConflictAvoid":np.mean(ConflictAvoid)*100,
+            "select":select
+            }

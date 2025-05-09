@@ -186,27 +186,34 @@ class FacialAnalyzer:
 # Example usage
 def calculate_section3(images, au_values):
     analyzer = FacialAnalyzer()
-    result = []
+    ideation_list = []
+    openness_list = []
+    originalty_list = []
+    attention_list = []
     # Process a single image
-    for image in images: # Replace with your image path
+    for i, image in enumerate(images): # Replace with your image path
         metrics = analyzer.process_image(image)
-        result.append(metrics)
-
-    collected = {key: [] for key in result[0].keys()}
-    for entry in result:
-        for key, value in entry.items():
-            collected[key].append(value)
-    # Compute mean for each key
-    mp_result = {key: np.mean(values) for key, values in collected.items()}
-    micro_expr_score = 1.0 if any([au > 0.9 for au in [au_values['AU01'], au_values['AU02'], au_values['AU04'], au_values['AU12']]]) else 0.0
-    ideation = (au_values['AU12'] + au_values['AU06'])*0.2 + mp_result['eye_openness']*0.3 + micro_expr_score*0.3
-    openness = (au_values['AU02'] + au_values['AU05'])*0.3 + mp_result['facial_symmetry']*0.4
-    originalty = (1 - mp_result['facial_symmetry'])*0.4 + au_values['AU12']*0.3 + au_values['AU01']*0.3
-    attention = mp_result['eye_openness']*0.3 + (1 - mp_result['facial_symmetry'])*0.3 + au_values['AU04']*0.4
+        
+        micro_expr_score = 1.0 if any([au > 0.9 for au in [au_values['AU01'][i], au_values['AU02'][i], au_values['AU04'][i], au_values['AU12'][i]]]) else 0.0
+        
+        ideation = (au_values['AU12'][i] + au_values['AU06'][i])*0.2 + metrics['eye_openness']*0.3 + micro_expr_score*0.3
+        ideation_list.append(ideation)
+        
+        openness = (au_values['AU02'][i] + au_values['AU05'][i])*0.3 + metrics['facial_symmetry']*0.4
+        openness_list.append(openness)
+        
+        originalty = (1 - metrics['facial_symmetry'])*0.4 + au_values['AU12'][i]*0.3 + au_values['AU01'][i] *0.3
+        originalty_list.append(originalty)
+        
+        attention = metrics['eye_openness']*0.3 + (1 - metrics['facial_symmetry'])*0.3 + au_values['AU04'][i]*0.4
+        attention_list.append(attention)
+    
+    select = np.argmax([ideation_list,openness_list,originalty_list,attention_list],axis=1)    
     return{
-        'ideation': ideation*100,
-        'openness': openness*100,
-        'originalty': originalty*100,
-        'attention':attention*100,
+        'ideation': np.mean(ideation_list)*100,
+        'openness': np.mean(openness_list)*100,
+        'originalty': np.mean(originalty_list)*100,
+        'attention': np.mean(attention_list)*100,
+        'select':select
         
     }

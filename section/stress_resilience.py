@@ -161,34 +161,27 @@ class StressResilienceAnalyzer:
 def calculate_section4(images, au_values):
     analyzer = StressResilienceAnalyzer()
     result = []
-    
+    stress_indicator =[]
+    emotional_regulation = []
+    resilience_score = []
     # Process images
-    for image in images:
+    for i,image in enumerate(images):
         metrics = analyzer.process_image(image)
-        result.append(metrics)
-
-    
-    # Aggregate results
-    collected = {key: [] for key in result[0].keys()}
-    for entry in result:
-        for key, value in entry.items():
-            collected[key].append(value)
-    
-    # Compute mean for each key
-    avg_metrics = {key: np.mean(values) for key, values in collected.items()}
-    
-    # Calculate stress resilience metrics
-    # Stress indicator - higher values indicate more stress
-    stress_indicator = au_values['AU04']*0.4 + au_values['AU24']*0.3 + au_values['AU04']*0.3
-    
-    # Emotional regulation - higher values indicate better regulation
-    emotional_regulation = (1 - avg_metrics['forehead_furrows'])*0.5 + (1 - au_values['AU04'])*0.3 + (1 - au_values['AU15'])*0.2
-    
-    # Resilience score - higher values indicate better resilience
-    resilience_score = (1 - stress_indicator)*0.4 + emotional_regulation*0.4 + au_values['AU12']*0.2
-    
+        # Calculate stress resilience metrics
+       
+        stress=au_values['AU04'][i]*0.4 + au_values['AU24'][i]*0.3 + au_values['AU04'][i]*0.3
+        stress_indicator.append(stress)
+       
+        emotional=(1 - metrics['forehead_furrows'])*0.5 + (1 - au_values['AU04'][i])*0.3 + (1 - au_values['AU15'][i])*0.2
+        emotional_regulation.append(emotional)
+        
+        resilience=(1-stress)*0.4 + emotional*0.4 + au_values['AU12'][i]*0.2
+        resilience_score.append(resilience)
+        
+    select = np.argmax([stress_indicator,emotional_regulation,resilience_score], axis=1)
     return {
-        'stress_indicator': stress_indicator*100,
-        'emotional_regulation':emotional_regulation*100,
-        'resilience_score': resilience_score*100,
+        'stress_indicator': np.mean(stress_indicator)*100,
+        'emotional_regulation':np.mean(emotional_regulation)*100,
+        'resilience_score': np.mean(resilience_score)*100,
+        'select':select
     }

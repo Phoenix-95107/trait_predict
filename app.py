@@ -48,8 +48,6 @@ async def detect_trait(files: List[UploadFile] = File(...)):
         
         # Detect AU values once for all images
         au_values = detector.detect_image(tmp_files)
-        au_values = np.mean(au_values.aus, axis=0)
-        
         # Run sections in parallel
         futures = [
             executor.submit(calculate_section1, tmp_files, au_values),
