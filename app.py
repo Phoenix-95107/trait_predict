@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from PIL import Image
 import numpy as np
-from predict import ocean_predict
 from section.relationship_empathy import calculate_section1
 from section.work_DNA_focus import calculate_section2
 from section.creativity_pulse import calculate_section3
