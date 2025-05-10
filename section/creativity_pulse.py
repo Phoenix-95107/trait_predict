@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import math
-from typing import Dict, Tuple, List, Optional, Union
+
 
 class FacialAnalyzer:
     def __init__(self):
@@ -15,7 +15,7 @@ class FacialAnalyzer:
             min_detection_confidence=0.5
         )
     
-    def process_image(self, image_path: str) -> Dict[str, float]:
+    def process_image(self, image_path: str):
         """
         Process an image and return eye openness and facial symmetry metrics.
         
@@ -51,7 +51,7 @@ class FacialAnalyzer:
             "facial_symmetry": facial_symmetry
         }
     
-    def calculate_eye_openness(self, face_landmarks, width: int, height: int) -> float:
+    def calculate_eye_openness(self, face_landmarks, width: int, height: int):
         """
         Calculate eye openness based on the ratio of eye height to eye width.
         
@@ -113,7 +113,7 @@ class FacialAnalyzer:
         
         return normalized_openness
     
-    def calculate_facial_symmetry(self, face_landmarks, width: int, height: int) -> float:
+    def calculate_facial_symmetry(self, face_landmarks, width: int, height: int):
         """
         Calculate facial symmetry by comparing landmark positions on both sides of the face.
         
@@ -210,10 +210,10 @@ def calculate_section3(images, au_values):
     
     select = np.argmax([ideation_list,openness_list,originalty_list,attention_list],axis=1)    
     return{
-        'ideation': np.mean(ideation_list)*100,
-        'openness': np.mean(openness_list)*100,
-        'originalty': np.mean(originalty_list)*100,
-        'attention': np.mean(attention_list)*100,
-        'select':select
+        'ideation':{"balance": f"{np.mean(ideation_list)*100:.1f}%", "top_image":int(select[0])},
+        'openness': {"balance": f"{np.mean(openness_list)*100:.1f}%", "top_image":int(select[1])},
+        'originalty': {"balance": f"{np.mean(originalty_list)*100:.1f}%", "top_image":int(select[2])},
+        'attention': {"balance": f"{np.mean(attention_list)*100:.1f}%", "top_image":int(select[3])},
+
         
     }

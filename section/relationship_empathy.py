@@ -6,15 +6,55 @@ import mediapipe as mp
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1,refine_landmarks=True, min_detection_confidence=0.5)
 
-# Process the image with MediaPipe for gaze and iris analysis
-def calculate_gaze_iris(image):
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = face_mesh.process(image_rgb)
-    if results.multi_face_landmarks:
-        for face_landmarks in results.multi_face_landmarks:
-            # Get image dimensions
-            h, w, _ = image.shape
+class FacialAnalyzer:
+    def __init__(self):
+        # Initialize MediaPipe Face Mesh
+        self.mp_face_mesh = mp.solutions.face_mesh
+        self.face_mesh = self.mp_face_mesh.FaceMesh(
+            static_image_mode=True,
+            max_num_faces=1,
+            refine_landmarks=True,
+            min_detection_confidence=0.5
+        )
+    
+    def process_image(self, image_path: str):
+        """
+        Process an image and return eye openness and facial symmetry metrics.
+        
+        Args:
+            image_path: Path to the image file
             
+        Returns:
+            Dictionary containing eye openness and facial symmetry scores
+        """
+        # Read the image
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError(f"Could not read image from {image_path}")
+        
+        # Convert to RGB (MediaPipe requires RGB input)
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Process the image with MediaPipe
+        results = self.face_mesh.process(image_rgb)
+        
+        if not results.multi_face_landmarks:
+            return {"error": "No face detected in the image"}
+        
+        # Get image dimensions
+        h, w, _ = image.shape
+        
+        # Calculate metrics
+        gaze_direction, iris_ratio = self.calculate_gaze_iris(results.multi_face_landmarks, w, h)
+        
+        return {
+            "iris_ratio": iris_ratio,
+            "gaze_direction": gaze_direction
+        }
+    
+    def calculate_gaze_iris(self, multi_face_landmarks, w, h):
+
+        for face_landmarks in multi_face_landmarks:
             # Get iris landmarks
             # Left eye iris landmarks (468 is the center)
             left_iris = face_landmarks.landmark[468]
@@ -171,18 +211,18 @@ def calculate_gaze_iris(image):
             else:
                 gaze_direction = 0
 
-    return {"gaze_direction": gaze_direction,"diopter": estimated_diopter}
+        return gaze_direction, estimated_diopter
 
 def calculate_section1(images,au_values):
+    analyzer = FacialAnalyzer()
     iris_score = []
     trust = []
     openness = []
     Empathy = []
     ConflictAvoid = []
     for i,image in enumerate(images):
-        result = calculate_gaze_iris(cv2.imread(image))
-        
-        iris_score = min(max((result['diopter'] + 1)/2, 0), 1)
+        result = analyzer.process_image(image)  
+        iris_score = min(max((result['iris_ratio'] + 1)/2, 0), 1)
         
         trust.append((au_values['AU06'][i] + au_values['AU12'][i])*0.2 + result['gaze_direction']*0.4 + iris_score*0.2)
         
@@ -193,11 +233,10 @@ def calculate_section1(images,au_values):
         ConflictAvoid.append((1-au_values['AU12'][i])*0.5 + (1-au_values['AU06'][i])*0.3 + result['gaze_direction']*0.2)
         # EmpathyScore = (Empathy + trust * 0.5)/1.5
         # RelationshipScore = trust*0.4 + openness*0.3 + Empathy*0.3 + (1-ConflictAvoid)*0.1
-    select = np.argmax([trust,openness,Empathy,ConflictAvoid], axis=1)
+    select = np.argmax([trust, openness, Empathy, ConflictAvoid], axis=1)
     
-    return {"trust": np.mean(trust)*100, 
-            "openness": np.mean(openness)*100,
-            "Empathy":np.mean(Empathy)*100, 
-            "ConflictAvoid":np.mean(ConflictAvoid)*100,
-            "select":select
+    return {"trust": {"balance": f"{np.mean(trust)*100:.1f}%","top_image":int(select[0])},
+            "openness": {"balance":f"{np.mean(openness)*100:.1f}%","top_image":int(select[1])},
+            "Empathy":{"balance":f"{np.mean(Empathy)*100:.1f}%","top_image":int(select[2])},
+            "ConflictAvoid":{"balance":f"{np.mean(ConflictAvoid)*100:.1f}%","top_image":int(select[3])},
             }

@@ -180,8 +180,7 @@ def calculate_section4(images, au_values):
         
     select = np.argmax([stress_indicator,emotional_regulation,resilience_score], axis=1)
     return {
-        'stress_indicator': np.mean(stress_indicator)*100,
-        'emotional_regulation':np.mean(emotional_regulation)*100,
-        'resilience_score': np.mean(resilience_score)*100,
-        'select':select
+        'stress_indicator': {"balance":f"{np.mean(stress_indicator)*100:.1f}%","top_image":int(select[0])},
+        'emotional_regulation':{"balance":f"{np.mean(emotional_regulation)*100:.1f}%","top_image":int(select[1])},
+        'resilience_score': {"balance":f"{np.mean(resilience_score)*100:.1f}%","top_image":int(select[2])},
     }

@@ -28,7 +28,10 @@ import concurrent.futures
 @app.post("/freemium_analyze")
 async def detect_trait(files: List[UploadFile] = File(...)):
     # [Validation code remains the same]
-    
+    if len(files) < 5:
+        raise HTTPException(status_code = 400, detail = "Please input more images. Minimum 5 images required.")
+    if len(files) > 7:
+        raise HTTPException(status_code = 400, detail = "Please input less images. Maximum 7 images allowed.")
     tmp_files = []
     dataset = []
     
@@ -59,15 +62,15 @@ async def detect_trait(files: List[UploadFile] = File(...)):
         # Collect results
         section_results = [future.result() for future in concurrent.futures.as_completed(futures)]
     
-    # Process OCEAN prediction
-    dataset = np.stack(dataset, axis=0)
-    result = ocean_predict(dataset)
-    output = {
-        'O': result[0],
-        'C': result[1],
-        'E': result[2],
-        'A': result[3],
-        'N': result[4]
-    }
+    # # Process OCEAN prediction
+    # dataset = np.stack(dataset, axis=0)
+    # result = ocean_predict(dataset)
+    # output = {
+    #     'O': result[0],
+    #     'C': result[1],
+    #     'E': result[2],
+    #     'A': result[3],
+    #     'N': result[4]
+    # }
     
     return section_results
